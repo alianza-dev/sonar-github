@@ -75,7 +75,8 @@ public class PullRequestFacadeTest {
     PullRequestFacade
       .processPatch(
         patchLocationMapping,
-        "@@ -17,9 +17,6 @@\n  * along with this program; if not, write to the Free Software Foundation,\n  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.\n  */\n-/**\n- * Deprecated in 4.5.1. JFreechart charts are replaced by Javascript charts.\n- */\n @ParametersAreNonnullByDefault\n package org.sonar.plugins.core.charts;\n ");
+        "@@ -17,9 +17,6 @@\n  * along with this program; if not, write to the Free Software Foundation,\n  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.\n  */\n-/**\n- * Deprecated in 4.5.1. JFreechart charts are replaced by Javascript charts.\n- */\n @ParametersAreNonnullByDefault\n package org.sonar.plugins.core.charts;\n ",
+        false);
 
     assertThat(patchLocationMapping).containsOnly(MapEntry.entry(17, 1), MapEntry.entry(18, 2), MapEntry.entry(19, 3), MapEntry.entry(20, 7), MapEntry.entry(21, 8),
       MapEntry.entry(22, 9));
@@ -87,10 +88,23 @@ public class PullRequestFacadeTest {
     PullRequestFacade
       .processPatch(
         patchLocationMapping,
-        "@@ -24,9 +24,9 @@\n /**\n  * A plugin is a group of extensions. See <code>org.sonar.api.Extension</code> interface to browse\n  * available extension points.\n- * <p/>\n  * <p>The manifest property <code>Plugin-Class</code> must declare the name of the implementation class.\n  * It is automatically set by sonar-packaging-maven-plugin when building plugins.</p>\n+ * <p>Implementation must declare a public constructor with no-parameters.</p>\n  *\n  * @see org.sonar.api.Extension\n  * @since 1.10");
+        "@@ -24,9 +24,9 @@\n /**\n  * A plugin is a group of extensions. See <code>org.sonar.api.Extension</code> interface to browse\n  * available extension points.\n- * <p/>\n  * <p>The manifest property <code>Plugin-Class</code> must declare the name of the implementation class.\n  * It is automatically set by sonar-packaging-maven-plugin when building plugins.</p>\n+ * <p>Implementation must declare a public constructor with no-parameters.</p>\n  *\n  * @see org.sonar.api.Extension\n  * @since 1.10",
+        false);
 
     assertThat(patchLocationMapping).containsOnly(MapEntry.entry(24, 1), MapEntry.entry(25, 2), MapEntry.entry(26, 3), MapEntry.entry(27, 5), MapEntry.entry(28, 6),
       MapEntry.entry(29, 7), MapEntry.entry(30, 8), MapEntry.entry(31, 9), MapEntry.entry(32, 10));
+  }
+
+  @Test
+  public void testPatchLineMapping_some_added_lines_ignoring_unchanged() throws IOException {
+    Map<Integer, Integer> patchLocationMapping = new LinkedHashMap<Integer, Integer>();
+    PullRequestFacade
+      .processPatch(
+        patchLocationMapping,
+        "@@ -24,9 +24,9 @@\n /**\n  * A plugin is a group of extensions. See <code>org.sonar.api.Extension</code> interface to browse\n  * available extension points.\n- * <p/>\n  * <p>The manifest property <code>Plugin-Class</code> must declare the name of the implementation class.\n  * It is automatically set by sonar-packaging-maven-plugin when building plugins.</p>\n+ * <p>Implementation must declare a public constructor with no-parameters.</p>\n  *\n  * @see org.sonar.api.Extension\n  * @since 1.10",
+        true);
+
+    assertThat(patchLocationMapping).containsOnly(MapEntry.entry(29, 7));
   }
 
   @Test
@@ -99,7 +113,8 @@ public class PullRequestFacadeTest {
     PullRequestFacade
       .processPatch(
         patchLocationMapping,
-        "@@ -1 +0,0 @@\n-<fake/>\n\\ No newline at end of file");
+        "@@ -1 +0,0 @@\n-<fake/>\n\\ No newline at end of file",
+        false);
 
     assertThat(patchLocationMapping).isEmpty();
   }

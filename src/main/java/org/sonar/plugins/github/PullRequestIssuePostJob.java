@@ -87,8 +87,11 @@ public class PullRequestIssuePostJob implements PostJob {
       .filter(i -> {
         InputComponent inputComponent = i.inputComponent();
         return inputComponent == null ||
-          !inputComponent.isFile() ||
-          pullRequestFacade.hasFile((InputFile) inputComponent);
+                !inputComponent.isFile() ||
+                pullRequestFacade.hasFile((InputFile) inputComponent) &&
+                        (!gitHubPluginConfiguration.ignoreUnchangedLines() ||
+                                i.line() == null ||
+                                pullRequestFacade.hasFileLine((InputFile) inputComponent, i.line()));
       })
       .sorted(ISSUE_COMPARATOR)
       .forEach(i -> processIssue(report, commentToBeAddedByFileAndByLine, i));

@@ -137,6 +137,10 @@ public class GitHubPluginConfiguration {
     return !settings.getBoolean(GitHubPlugin.GITHUB_DISABLE_INLINE_COMMENTS);
   }
 
+  public boolean ignoreUnchangedLines() {
+    return settings.getBoolean(GitHubPlugin.GITHUB_IGNORE_UNCHANGED_LINES);
+  }
+
   /**
    * Checks if a proxy was passed with command line parameters or configured in the system.
    * If only an HTTP proxy was configured then it's properties are copied to the HTTPS proxy (like SonarQube configuration)

@@ -160,18 +160,18 @@ public class PullRequestFacade {
     for (GHPullRequestFileDetail file : pr.listFiles()) {
       Map<Integer, Integer> patchLocationMapping = new HashMap<>();
       result.put(file.getFilename(), patchLocationMapping);
-      if (config.tryReportIssuesInline()) {
+      if (config.tryReportIssuesInline() || config.ignoreUnchangedLines()) {
         String patch = file.getPatch();
         if (patch == null) {
           continue;
         }
-        processPatch(patchLocationMapping, patch);
+        processPatch(patchLocationMapping, patch, config.ignoreUnchangedLines());
       }
     }
     return result;
   }
 
-  static void processPatch(Map<Integer, Integer> patchLocationMapping, String patch) throws IOException {
+  static void processPatch(Map<Integer, Integer> patchLocationMapping, String patch, boolean ignoreUnchangedLines) throws IOException {
     int currentLine = -1;
     int patchLocation = 0;
     BufferedReader reader = new BufferedReader(new StringReader(patch));
@@ -188,7 +188,9 @@ public class PullRequestFacade {
         // Skip removed lines
       } else if (line.startsWith("+") || line.startsWith(" ")) {
         // Count added and unmodified lines
-        patchLocationMapping.put(currentLine, patchLocation);
+        if (line.startsWith("+") || !ignoreUnchangedLines) {
+          patchLocationMapping.put(currentLine, patchLocation);
+        }
         currentLine++;
       } else if (line.startsWith("\\")) {
         // I'm only aware of \ No newline at end of file

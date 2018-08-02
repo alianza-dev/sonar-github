@@ -59,6 +59,14 @@ import org.sonar.api.PropertyType;
     description = "Issues will not be reported as inline comments but only in the global summary comment",
     project = true,
     global = true,
+    type = PropertyType.BOOLEAN),
+  @Property(
+    key = GitHubPlugin.GITHUB_IGNORE_UNCHANGED_LINES,
+    defaultValue = "false",
+    name = "Ignore lines that were not changed in the PR",
+    description = "Don't report issues for lines that were not changed by any of the commits in the PR being scanned",
+    project = true,
+    global = true,
     type = PropertyType.BOOLEAN)
 })
 public class GitHubPlugin implements Plugin {
@@ -68,6 +76,7 @@ public class GitHubPlugin implements Plugin {
   public static final String GITHUB_REPO = "sonar.github.repository";
   public static final String GITHUB_PULL_REQUEST = "sonar.github.pullRequest";
   public static final String GITHUB_DISABLE_INLINE_COMMENTS = "sonar.github.disableInlineComments";
+  public static final String GITHUB_IGNORE_UNCHANGED_LINES = "sonar.github.ignoreUnchangedLines";
 
   @Override
   public void define(Context context) {
