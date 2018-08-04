@@ -99,7 +99,7 @@ public class PullRequestIssuePostJobTest {
     when(context.issues()).thenReturn(Arrays.<PostJobIssue>asList());
     pullRequestIssuePostJob.execute(context);
     verify(pullRequestFacade).createOrUpdateGlobalComments(null);
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.SUCCESS, "SonarQube reported no issues");
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.SUCCESS, "SonarQube reported no issues", false);
   }
 
   @Test
@@ -138,7 +138,7 @@ public class PullRequestIssuePostJobTest {
         contains(
           "1. ![BLOCKER][BLOCKER] [Foo.php#L2](http://github/blob/abc123/src/Foo.php#L2): msg2 [![rule](https://sonarsource.github.io/sonar-github/rule.png)](http://myserver/coding_rules#rule_key=repo%3Arule)"));
 
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 5 issues, with 5 blocker");
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 5 issues, with 5 blocker", true);
   }
 
   @Test
@@ -194,7 +194,7 @@ public class PullRequestIssuePostJobTest {
 
     pullRequestIssuePostJob.execute(context);
 
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 1 issue, with 1 critical");
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 1 issue, with 1 critical", true);
   }
 
   @Test
@@ -209,7 +209,7 @@ public class PullRequestIssuePostJobTest {
 
     pullRequestIssuePostJob.execute(context);
 
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.SUCCESS, "SonarQube reported 1 issue, no criticals or blockers");
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.SUCCESS, "SonarQube reported 1 issue, no criticals or blockers", true);
   }
 
   @Test
@@ -227,7 +227,7 @@ public class PullRequestIssuePostJobTest {
 
     pullRequestIssuePostJob.execute(context);
 
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 2 issues, with 1 critical and 1 blocker");
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, "SonarQube reported 2 issues, with 1 critical and 1 blocker", true);
   }
 
   @Test
@@ -238,6 +238,6 @@ public class PullRequestIssuePostJobTest {
     pullRequestIssuePostJob.execute(context);
 
     String msg = "SonarQube analysis failed: " + innerMsg;
-    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, msg);
+    verify(pullRequestFacade).createOrUpdateSonarQubeStatus(GHCommitState.ERROR, msg, false);
   }
 }

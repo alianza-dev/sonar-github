@@ -22,6 +22,7 @@ package org.sonar.plugins.github;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 import org.apache.commons.lang.StringUtils;
 import org.kohsuke.github.GHCommitState;
@@ -71,10 +72,10 @@ public class PullRequestIssuePostJob implements PostJob {
 
       pullRequestFacade.createOrUpdateGlobalComments(report.hasNewIssue() ? report.formatForMarkdown() : null);
 
-      pullRequestFacade.createOrUpdateSonarQubeStatus(report.getStatus(), report.getStatusDescription());
+      pullRequestFacade.createOrUpdateSonarQubeStatus(report.getStatus(), report.getStatusDescription(), report.hasNewIssue());
     } catch (Exception e) {
       LOG.error("SonarQube analysis failed to complete the review of this pull request", e);
-      pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.ERROR, StringUtils.abbreviate("SonarQube analysis failed: " + e.getMessage(), 140));
+      pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.ERROR, StringUtils.abbreviate("SonarQube analysis failed: " + e.getMessage(), 140), false);
     }
   }
 
@@ -86,12 +87,22 @@ public class PullRequestIssuePostJob implements PostJob {
       // SONARGITUB-13 Ignore issues on files not modified by the P/R
       .filter(i -> {
         InputComponent inputComponent = i.inputComponent();
-        return inputComponent == null ||
-                !inputComponent.isFile() ||
-                pullRequestFacade.hasFile((InputFile) inputComponent) &&
-                        (!gitHubPluginConfiguration.ignoreUnchangedLines() ||
-                                i.line() == null ||
-                                pullRequestFacade.hasFileLine((InputFile) inputComponent, i.line()));
+          boolean result = inputComponent == null ||
+                  !inputComponent.isFile() ||
+                  pullRequestFacade.hasFile((InputFile) inputComponent) &&
+                          (!gitHubPluginConfiguration.ignoreUnchangedLines() ||
+                                  Optional.ofNullable(i.line()).map(line->pullRequestFacade.hasFileLine((InputFile) inputComponent, line)).orElse(true));
+          if (result) {
+              LOG.debug("result: {}, inputComponent: {}, file?: {}, hasFile?: {}, ignoreUnchanged?: {}, line: {}, message: {}",
+                       result,
+                       inputComponent,
+                       Optional.ofNullable(inputComponent).map(InputComponent::isFile).orElse(false),
+                       Optional.ofNullable(inputComponent).filter(InputComponent::isFile).map(ic->pullRequestFacade.hasFile((InputFile) ic)).orElse(false),
+                       gitHubPluginConfiguration.ignoreUnchangedLines(),
+                       i.line(),
+                       i.message());
+          }
+          return result;
       })
       .sorted(ISSUE_COMPARATOR)
       .forEach(i -> processIssue(report, commentToBeAddedByFileAndByLine, i));
@@ -105,6 +116,7 @@ public class PullRequestIssuePostJob implements PostJob {
     if (gitHubPluginConfiguration.tryReportIssuesInline() && inputComponent != null && inputComponent.isFile()) {
       reportedInline = tryReportInline(commentToBeAddedByFileAndByLine, issue, (InputFile) inputComponent);
     }
+    LOG.debug("reportedInLine: {}, inputComponent: {}, line: {}, message: {}", reportedInline, inputComponent, issue.line(), issue.message());
     report.process(issue, pullRequestFacade.getGithubUrl(inputComponent, issue.line()), reportedInline);
   }
 

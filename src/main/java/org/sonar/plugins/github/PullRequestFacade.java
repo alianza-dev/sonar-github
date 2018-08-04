@@ -40,7 +40,11 @@ import org.kohsuke.github.GHCommitStatus;
 import org.kohsuke.github.GHIssueComment;
 import org.kohsuke.github.GHPullRequest;
 import org.kohsuke.github.GHPullRequestFileDetail;
+import org.kohsuke.github.GHPullRequestReview;
+import org.kohsuke.github.GHPullRequestReviewBuilder;
 import org.kohsuke.github.GHPullRequestReviewComment;
+import org.kohsuke.github.GHPullRequestReviewEvent;
+import org.kohsuke.github.GHPullRequestReviewState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
@@ -74,6 +78,7 @@ public class PullRequestFacade {
   private Map<Long, GHPullRequestReviewComment> reviewCommentToBeDeletedById = new HashMap<>();
   private File gitBaseDir;
   private String myself;
+  private GHPullRequestReviewBuilder reviewBuilder;
 
   public PullRequestFacade(GitHubPluginConfiguration config) {
     this.config = config;
@@ -90,6 +95,7 @@ public class PullRequestFacade {
       }
       setGhRepo(github.getRepository(config.repository()));
       setPr(ghRepo.getPullRequest(pullRequestNumber));
+      setReviewBuilder();
       LOG.info("Starting analysis of pull request: " + pr.getHtmlUrl());
       myself = github.getMyself().getLogin();
       loadExistingReviewComments();
@@ -118,6 +124,12 @@ public class PullRequestFacade {
     this.pr = pr;
   }
 
+  void setReviewBuilder() {
+    if(config.useReview()){
+      this.reviewBuilder = pr.createReview().commitId(pr.getHead().getSha());
+    }
+  }
+
   public File findGitBaseDir(@Nullable File baseDir) {
     if (baseDir == null) {
       return null;
@@ -141,12 +153,14 @@ public class PullRequestFacade {
         // Ignore comments from other users
         continue;
       }
-      if (!existingReviewCommentsByLocationByFile.containsKey(comment.getPath())) {
+      if (!config.useReview() && !existingReviewCommentsByLocationByFile.containsKey(comment.getPath())) {
         existingReviewCommentsByLocationByFile.put(comment.getPath(), new HashMap<Integer, GHPullRequestReviewComment>());
       }
       // By default all previous comments will be marked for deletion
       reviewCommentToBeDeletedById.put(comment.getId(), comment);
-      existingReviewCommentsByLocationByFile.get(comment.getPath()).put(comment.getPosition(), comment);
+      if (!config.useReview()) {
+        existingReviewCommentsByLocationByFile.get(comment.getPath()).put(comment.getPosition(), comment);
+      }
     }
   }
 
@@ -222,7 +236,9 @@ public class PullRequestFacade {
     String fullpath = getPath(inputFile);
     Integer lineInPatch = patchPositionMappingByFile.get(fullpath).get(line);
     try {
-      if (existingReviewCommentsByLocationByFile.containsKey(fullpath) && existingReviewCommentsByLocationByFile.get(fullpath).containsKey(lineInPatch)) {
+      if (config.useReview()) {
+        reviewBuilder.comment(body, fullpath, lineInPatch);
+      } else if (existingReviewCommentsByLocationByFile.containsKey(fullpath) && existingReviewCommentsByLocationByFile.get(fullpath).containsKey(lineInPatch)) {
         GHPullRequestReviewComment existingReview = existingReviewCommentsByLocationByFile.get(fullpath).get(lineInPatch);
         if (!existingReview.getBody().equals(body)) {
           existingReview.update(body);
@@ -251,7 +267,11 @@ public class PullRequestFacade {
     try {
       boolean found = findAndDeleteOthers(markup);
       if (markup != null && !found) {
-        pr.comment(markup);
+        if (config.useReview()) {
+          reviewBuilder.body(markup);
+        } else {
+          pr.comment(markup);
+        }
       }
     } catch (IOException e) {
       throw new IllegalStateException("Unable to read the pull request comments", e);
@@ -274,7 +294,7 @@ public class PullRequestFacade {
     return found;
   }
 
-  public void createOrUpdateSonarQubeStatus(GHCommitState status, String statusDescription) {
+  public void createOrUpdateSonarQubeStatus(GHCommitState status, String statusDescription, boolean hasNewIssue) {
     try {
       // Copy previous targetUrl in case it was set by an external system (like the CI job).
       String targetUrl = null;
@@ -283,6 +303,21 @@ public class PullRequestFacade {
         targetUrl = lastStatus.getTargetUrl();
       }
       ghRepo.createCommitStatus(pr.getHead().getSha(), status, targetUrl, statusDescription, COMMIT_CONTEXT);
+
+      if (config.useReview()) {
+        switch (status) {
+          case SUCCESS:
+            if (hasNewIssue) {
+              createReview(GHPullRequestReviewEvent.COMMENT);
+            }
+            break;
+          case ERROR:
+          case FAILURE:
+            createReview(GHPullRequestReviewEvent.REQUEST_CHANGES);
+            break;
+          default:
+        }
+      }
     } catch (FileNotFoundException e) {
       String msg = "Unable to set pull request status. GitHub account probably miss push permission on the repository.";
       if (LOG.isDebugEnabled()) {
@@ -292,6 +327,19 @@ public class PullRequestFacade {
       }
     } catch (IOException e) {
       throw new IllegalStateException("Unable to update commit status", e);
+    }
+  }
+
+  private void createReview(GHPullRequestReviewEvent event) throws IOException {
+    eraseExistingReviews();
+    reviewBuilder.event(event).create();
+  }
+
+  private void eraseExistingReviews() throws IOException {
+    for (GHPullRequestReview review : pr.listReviews()) {
+      if (myself.equals(review.getUser().getLogin()) && review.getState()!=GHPullRequestReviewState.DISMISSED) {
+        review.dismiss("Re-analyzing");
+      }
     }
   }
 

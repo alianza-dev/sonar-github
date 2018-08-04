@@ -48,7 +48,7 @@ public class GlobalReport {
   }
 
   public String formatForMarkdown() {
-    int newIssues = newIssues(Severity.BLOCKER) + newIssues(Severity.CRITICAL) + newIssues(Severity.MAJOR) + newIssues(Severity.MINOR) + newIssues(Severity.INFO);
+    int newIssues = countNewIssues();
     if (newIssues == 0) {
       return "SonarQube analysis reported no issues.";
     }
@@ -116,7 +116,7 @@ public class GlobalReport {
 
   private void appendNewIssuesInline(StringBuilder sb) {
     sb.append("SonarQube reported ");
-    int newIssues = newIssues(Severity.BLOCKER) + newIssues(Severity.CRITICAL) + newIssues(Severity.MAJOR) + newIssues(Severity.MINOR) + newIssues(Severity.INFO);
+    int newIssues = countNewIssues();
     if (newIssues > 0) {
       sb.append(newIssues).append(" issue" + (newIssues > 1 ? "s" : "")).append(",");
       int newCriticalOrBlockerIssues = newIssues(Severity.BLOCKER) + newIssues(Severity.CRITICAL);
@@ -165,6 +165,10 @@ public class GlobalReport {
   }
 
   public boolean hasNewIssue() {
-    return newIssues(Severity.BLOCKER) + newIssues(Severity.CRITICAL) + newIssues(Severity.MAJOR) + newIssues(Severity.MINOR) + newIssues(Severity.INFO) > 0;
+    return countNewIssues() > 0;
+  }
+
+  private int countNewIssues() {
+    return newIssues(Severity.BLOCKER) + newIssues(Severity.CRITICAL) + newIssues(Severity.MAJOR) + newIssues(Severity.MINOR) + newIssues(Severity.INFO);
   }
 }

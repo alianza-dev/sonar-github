@@ -141,6 +141,10 @@ public class GitHubPluginConfiguration {
     return settings.getBoolean(GitHubPlugin.GITHUB_IGNORE_UNCHANGED_LINES);
   }
 
+  public boolean useReview() {
+    return settings.getBoolean(GitHubPlugin.GITHUB_USE_REVIEW);
+  }
+
   /**
    * Checks if a proxy was passed with command line parameters or configured in the system.
    * If only an HTTP proxy was configured then it's properties are copied to the HTTPS proxy (like SonarQube configuration)

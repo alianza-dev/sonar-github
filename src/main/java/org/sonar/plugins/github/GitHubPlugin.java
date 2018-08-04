@@ -67,6 +67,14 @@ import org.sonar.api.PropertyType;
     description = "Don't report issues for lines that were not changed by any of the commits in the PR being scanned",
     project = true,
     global = true,
+    type = PropertyType.BOOLEAN),
+  @Property(
+    key = GitHubPlugin.GITHUB_USE_REVIEW,
+    defaultValue = "false",
+    name = "Add all comments in a review",
+    description = "Use a PR review to contain the comments - so github only sends a single email per analysis",
+    project = true,
+    global = true,
     type = PropertyType.BOOLEAN)
 })
 public class GitHubPlugin implements Plugin {
@@ -77,6 +85,7 @@ public class GitHubPlugin implements Plugin {
   public static final String GITHUB_PULL_REQUEST = "sonar.github.pullRequest";
   public static final String GITHUB_DISABLE_INLINE_COMMENTS = "sonar.github.disableInlineComments";
   public static final String GITHUB_IGNORE_UNCHANGED_LINES = "sonar.github.ignoreUnchangedLines";
+  public static final String GITHUB_USE_REVIEW = "sonar.github.useReview";
 
   @Override
   public void define(Context context) {
