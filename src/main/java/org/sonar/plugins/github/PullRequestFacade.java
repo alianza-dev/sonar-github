@@ -48,9 +48,6 @@ import org.kohsuke.github.GHPullRequestReviewState;
 import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.GitHubBuilder;
-import org.sonar.api.batch.BatchSide;
-import org.sonar.api.batch.InstantiationStrategy;
-import org.sonar.api.batch.ScannerSide;
 import org.sonar.api.batch.fs.InputComponent;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.fs.InputPath;
@@ -62,8 +59,6 @@ import org.sonar.api.utils.log.Loggers;
 /**
  * Facade for all WS interaction with GitHub.
  */
-@ScannerSide
-@InstantiationStrategy(InstantiationStrategy.PER_BATCH)
 public class PullRequestFacade {
 
   private static final Logger LOG = Loggers.get(PullRequestFacade.class);
@@ -84,7 +79,7 @@ public class PullRequestFacade {
     this.config = config;
   }
 
-  public void init(int pullRequestNumber, File projectBaseDir) {
+  public void init(Integer pullRequestNumber, File projectBaseDir) {
     initGitBaseDir(projectBaseDir);
     try {
       GitHub github;

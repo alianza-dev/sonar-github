@@ -26,7 +26,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.sonar.api.CoreProperties;
 import org.sonar.api.config.PropertyDefinitions;
-import org.sonar.api.config.Settings;
 import org.sonar.api.config.internal.MapSettings;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
@@ -105,8 +104,11 @@ public class GitHubPluginConfigurationTest {
 
     assertThat(config.isEnabled()).isFalse();
     settings.setProperty(GitHubPlugin.GITHUB_PULL_REQUEST, "3");
-    assertThat(config.pullRequestNumber()).isEqualTo(3);
+    assertThat(config.pullRequestNumbers()).containsOnly(3);
     assertThat(config.isEnabled()).isTrue();
+
+    settings.setProperty(GitHubPlugin.GITHUB_PULL_REQUEST, "3,4, 6");
+    assertThat(config.pullRequestNumbers()).containsOnly(3, 4, 6);
 
     assertThat(config.endpoint()).isEqualTo("https://api.github.com");
     settings.setProperty(GitHubPlugin.GITHUB_ENDPOINT, "http://myprivate-endpoint");

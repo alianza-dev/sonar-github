@@ -43,13 +43,13 @@ public class PullRequestIssuePostJob implements PostJob {
 
   private static final Comparator<PostJobIssue> ISSUE_COMPARATOR = new IssueComparator();
 
-  private final PullRequestFacade pullRequestFacade;
+  private final PullRequestFacades pullRequestFacades;
   private final GitHubPluginConfiguration gitHubPluginConfiguration;
   private final MarkDownUtils markDownUtils;
 
-  public PullRequestIssuePostJob(GitHubPluginConfiguration gitHubPluginConfiguration, PullRequestFacade pullRequestFacade, MarkDownUtils markDownUtils) {
+  public PullRequestIssuePostJob(GitHubPluginConfiguration gitHubPluginConfiguration, PullRequestFacades pullRequestFacades, MarkDownUtils markDownUtils) {
     this.gitHubPluginConfiguration = gitHubPluginConfiguration;
-    this.pullRequestFacade = pullRequestFacade;
+    this.pullRequestFacades = pullRequestFacades;
     this.markDownUtils = markDownUtils;
   }
 
@@ -62,24 +62,31 @@ public class PullRequestIssuePostJob implements PostJob {
 
   @Override
   public void execute(PostJobContext context) {
-    GlobalReport report = new GlobalReport(markDownUtils, gitHubPluginConfiguration.tryReportIssuesInline());
-    try {
-      Map<InputFile, Map<Integer, StringBuilder>> commentsToBeAddedByLine = processIssues(report, context.issues());
+    for(PullRequestFacade pullRequestFacade : pullRequestFacades.getPullRequestFacades().values()) {
+      GlobalReport report = new GlobalReport(markDownUtils, gitHubPluginConfiguration.tryReportIssuesInline());
+      try {
+        Map<InputFile, Map<Integer, StringBuilder>> commentsToBeAddedByLine = processIssues(report, pullRequestFacade, context.issues());
 
-      updateReviewComments(commentsToBeAddedByLine);
+        updateReviewComments(pullRequestFacade, commentsToBeAddedByLine);
 
-      pullRequestFacade.deleteOutdatedComments();
+        pullRequestFacade.deleteOutdatedComments();
 
-      pullRequestFacade.createOrUpdateGlobalComments(report.hasNewIssue() ? report.formatForMarkdown() : null);
+        pullRequestFacade.createOrUpdateGlobalComments(report.hasNewIssue() ? report.formatForMarkdown() : null);
 
-      pullRequestFacade.createOrUpdateSonarQubeStatus(report.getStatus(), report.getStatusDescription(), report.hasNewIssue());
-    } catch (Exception e) {
-      LOG.error("SonarQube analysis failed to complete the review of this pull request", e);
-      pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.ERROR, StringUtils.abbreviate("SonarQube analysis failed: " + e.getMessage(), 140), false);
+        pullRequestFacade.createOrUpdateSonarQubeStatus(report.getStatus(),
+                                                        report.getStatusDescription(),
+                                                        report.hasNewIssue());
+      } catch (Exception e) {
+        LOG.error("SonarQube analysis failed to complete the review of this pull request", e);
+        pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.ERROR,
+                                                        StringUtils.abbreviate(
+                                                                "SonarQube analysis failed: " + e.getMessage(), 140),
+                                                        false);
+      }
     }
   }
 
-  private Map<InputFile, Map<Integer, StringBuilder>> processIssues(GlobalReport report, Iterable<PostJobIssue> issues) {
+  private Map<InputFile, Map<Integer, StringBuilder>> processIssues(GlobalReport report, PullRequestFacade pullRequestFacade, Iterable<PostJobIssue> issues) {
     Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine = new HashMap<>();
 
     StreamSupport.stream(issues.spliterator(), false)
@@ -105,22 +112,22 @@ public class PullRequestIssuePostJob implements PostJob {
           return result;
       })
       .sorted(ISSUE_COMPARATOR)
-      .forEach(i -> processIssue(report, commentToBeAddedByFileAndByLine, i));
+      .forEach(i -> processIssue(report, pullRequestFacade, commentToBeAddedByFileAndByLine, i));
     return commentToBeAddedByFileAndByLine;
 
   }
 
-  private void processIssue(GlobalReport report, Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine, PostJobIssue issue) {
+  private void processIssue(GlobalReport report, PullRequestFacade pullRequestFacade, Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine, PostJobIssue issue) {
     boolean reportedInline = false;
     InputComponent inputComponent = issue.inputComponent();
     if (gitHubPluginConfiguration.tryReportIssuesInline() && inputComponent != null && inputComponent.isFile()) {
-      reportedInline = tryReportInline(commentToBeAddedByFileAndByLine, issue, (InputFile) inputComponent);
+      reportedInline = tryReportInline(pullRequestFacade, commentToBeAddedByFileAndByLine, issue, (InputFile) inputComponent);
     }
     LOG.debug("reportedInLine: {}, inputComponent: {}, line: {}, message: {}", reportedInline, inputComponent, issue.line(), issue.message());
     report.process(issue, pullRequestFacade.getGithubUrl(inputComponent, issue.line()), reportedInline);
   }
 
-  private boolean tryReportInline(Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine, PostJobIssue issue, InputFile inputFile) {
+  private boolean tryReportInline(PullRequestFacade pullRequestFacade, Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine, PostJobIssue issue, InputFile inputFile) {
     Integer lineOrNull = issue.line();
     if (lineOrNull != null) {
       int line = lineOrNull.intValue();
@@ -141,7 +148,7 @@ public class PullRequestIssuePostJob implements PostJob {
     return false;
   }
 
-  private void updateReviewComments(Map<InputFile, Map<Integer, StringBuilder>> commentsToBeAddedByLine) {
+  private void updateReviewComments(PullRequestFacade pullRequestFacade, Map<InputFile, Map<Integer, StringBuilder>> commentsToBeAddedByLine) {
     for (Map.Entry<InputFile, Map<Integer, StringBuilder>> entry : commentsToBeAddedByLine.entrySet()) {
       for (Map.Entry<Integer, StringBuilder> entryPerLine : entry.getValue().entrySet()) {
         String body = entryPerLine.getValue().toString();

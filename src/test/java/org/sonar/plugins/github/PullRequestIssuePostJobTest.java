@@ -36,8 +36,8 @@ import org.sonar.api.batch.postjob.issue.PostJobIssue;
 import org.sonar.api.batch.rule.Severity;
 import org.sonar.api.config.PropertyDefinition;
 import org.sonar.api.config.PropertyDefinitions;
-import org.sonar.api.config.Settings;
 import org.sonar.api.config.internal.MapSettings;
+import org.sonar.api.internal.google.common.collect.ImmutableMap;
 import org.sonar.api.rule.RuleKey;
 import org.sonar.api.utils.System2;
 
@@ -54,12 +54,15 @@ import static org.mockito.Mockito.when;
 public class PullRequestIssuePostJobTest {
 
   private PullRequestIssuePostJob pullRequestIssuePostJob;
+  private PullRequestFacades pullRequestFacades;
   private PullRequestFacade pullRequestFacade;
   private PostJobContext context;
 
   @Before
   public void prepare() throws Exception {
+    pullRequestFacades = mock(PullRequestFacades.class);
     pullRequestFacade = mock(PullRequestFacade.class);
+    when(pullRequestFacades.getPullRequestFacades()).thenReturn(ImmutableMap.of(1, pullRequestFacade));
     MapSettings settings = new MapSettings(new PropertyDefinitions(PropertyDefinition.builder(CoreProperties.SERVER_BASE_URL)
       .name("Server base URL")
       .description("HTTP URL of this SonarQube server, such as <i>http://yourhost.yourdomain/sonar</i>. This value is used i.e. to create links in emails.")
@@ -71,7 +74,7 @@ public class PullRequestIssuePostJobTest {
 
     settings.setProperty("sonar.host.url", "http://192.168.0.1");
     settings.setProperty(CoreProperties.SERVER_BASE_URL, "http://myserver");
-    pullRequestIssuePostJob = new PullRequestIssuePostJob(config, pullRequestFacade, new MarkDownUtils(settings));
+    pullRequestIssuePostJob = new PullRequestIssuePostJob(config, pullRequestFacades, new MarkDownUtils(settings));
   }
 
   private PostJobIssue newMockedIssue(String componentKey, @CheckForNull DefaultInputFile inputFile, @CheckForNull Integer line, Severity severity,

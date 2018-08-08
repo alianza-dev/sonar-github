@@ -33,12 +33,12 @@ import org.sonar.api.utils.MessageException;
 public class PullRequestProjectBuilder extends ProjectBuilder {
 
   private final GitHubPluginConfiguration gitHubPluginConfiguration;
-  private final PullRequestFacade pullRequestFacade;
+  private final PullRequestFacades pullRequestFacades;
   private final AnalysisMode mode;
 
-  public PullRequestProjectBuilder(GitHubPluginConfiguration gitHubPluginConfiguration, PullRequestFacade pullRequestFacade, AnalysisMode mode) {
+  public PullRequestProjectBuilder(GitHubPluginConfiguration gitHubPluginConfiguration, PullRequestFacades pullRequestFacades, AnalysisMode mode) {
     this.gitHubPluginConfiguration = gitHubPluginConfiguration;
-    this.pullRequestFacade = pullRequestFacade;
+    this.pullRequestFacades = pullRequestFacades;
     this.mode = mode;
   }
 
@@ -48,10 +48,11 @@ public class PullRequestProjectBuilder extends ProjectBuilder {
       return;
     }
     checkMode();
-    int pullRequestNumber = gitHubPluginConfiguration.pullRequestNumber();
-    pullRequestFacade.init(pullRequestNumber, context.projectReactor().getRoot().getBaseDir());
 
-    pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.PENDING, "SonarQube analysis in progress", false);
+    pullRequestFacades.getPullRequestFacades().forEach((pullRequestNumber, pullRequestFacade)->{
+      pullRequestFacade.init(pullRequestNumber, context.projectReactor().getRoot().getBaseDir());
+      pullRequestFacade.createOrUpdateSonarQubeStatus(GHCommitState.PENDING, "SonarQube analysis in progress", false);
+    });
   }
 
   private void checkMode() {

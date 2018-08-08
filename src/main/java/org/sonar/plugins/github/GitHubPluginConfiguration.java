@@ -27,9 +27,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 import javax.annotation.CheckForNull;
 import org.sonar.api.CoreProperties;
-import org.sonar.api.batch.BatchSide;
 import org.sonar.api.batch.InstantiationStrategy;
 import org.sonar.api.batch.ScannerSide;
 import org.sonar.api.config.Settings;
@@ -66,8 +66,10 @@ public class GitHubPluginConfiguration {
     this.gitHttpPattern = Pattern.compile("https?://github\\.com/(.*/.*)\\.git");
   }
 
-  public int pullRequestNumber() {
-    return settings.getInt(GitHubPlugin.GITHUB_PULL_REQUEST);
+  public Integer[] pullRequestNumbers() {
+    return Stream.of(settings.getStringArray(GitHubPlugin.GITHUB_PULL_REQUEST))
+                 .map(Integer::valueOf)
+                 .toArray(Integer[]::new);
   }
 
   public String repository() {

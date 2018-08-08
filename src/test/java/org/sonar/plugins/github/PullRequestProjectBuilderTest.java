@@ -27,8 +27,8 @@ import org.junit.rules.ExpectedException;
 import org.sonar.api.batch.AnalysisMode;
 import org.sonar.api.batch.bootstrap.ProjectBuilder;
 import org.sonar.api.config.PropertyDefinitions;
-import org.sonar.api.config.Settings;
 import org.sonar.api.config.internal.MapSettings;
+import org.sonar.api.internal.google.common.collect.ImmutableMap;
 import org.sonar.api.utils.MessageException;
 import org.sonar.api.utils.System2;
 
@@ -47,23 +47,23 @@ public class PullRequestProjectBuilderTest {
   public ExpectedException thrown = ExpectedException.none();
 
   private PullRequestProjectBuilder pullRequestProjectBuilder;
-  private PullRequestFacade facade;
+  private PullRequestFacades facades;
   private MapSettings settings;
   private AnalysisMode mode;
 
   @Before
   public void prepare() {
     settings = new MapSettings(new PropertyDefinitions(GitHubPlugin.class));
-    facade = mock(PullRequestFacade.class);
+    facades = mock(PullRequestFacades.class);
     mode = mock(AnalysisMode.class);
-    pullRequestProjectBuilder = new PullRequestProjectBuilder(new GitHubPluginConfiguration(settings, new System2()), facade, mode);
+    pullRequestProjectBuilder = new PullRequestProjectBuilder(new GitHubPluginConfiguration(settings, new System2()), facades, mode);
 
   }
 
   @Test
   public void shouldDoNothing() {
     pullRequestProjectBuilder.build(null);
-    verifyZeroInteractions(facade);
+    verifyZeroInteractions(facades);
   }
 
   @Test
@@ -81,8 +81,11 @@ public class PullRequestProjectBuilderTest {
     settings.setProperty(GitHubPlugin.GITHUB_PULL_REQUEST, "1");
     when(mode.isIssues()).thenReturn(true);
 
+    PullRequestFacade mockFacade = mock(PullRequestFacade.class);
+    when(facades.getPullRequestFacades()).thenReturn(ImmutableMap.of(1, mockFacade));
+
     pullRequestProjectBuilder.build(mock(ProjectBuilder.Context.class, withSettings().defaultAnswer(RETURNS_DEEP_STUBS)));
 
-    verify(facade).init(eq(1), any(File.class));
+    verify(mockFacade).init(eq(1), any(File.class));
   }
 }

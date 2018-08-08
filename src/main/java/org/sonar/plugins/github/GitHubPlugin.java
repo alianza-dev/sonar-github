@@ -46,12 +46,12 @@ import org.sonar.api.PropertyType;
     global = false),
   @Property(
     key = GitHubPlugin.GITHUB_PULL_REQUEST,
-    name = "GitHub Pull Request",
-    description = "Pull request number",
+    name = "GitHub Pull Request Number(s)",
+    description = "One or more comma separated pull request numbers",
     project = false,
     module = false,
     global = false,
-    type = PropertyType.INTEGER),
+    type = PropertyType.STRING),
   @Property(
     key = GitHubPlugin.GITHUB_DISABLE_INLINE_COMMENTS,
     defaultValue = "false",
@@ -93,7 +93,7 @@ public class GitHubPlugin implements Plugin {
       PullRequestIssuePostJob.class,
       GitHubPluginConfiguration.class,
       PullRequestProjectBuilder.class,
-      PullRequestFacade.class,
+      PullRequestFacades.class,
       MarkDownUtils.class);
   }
 

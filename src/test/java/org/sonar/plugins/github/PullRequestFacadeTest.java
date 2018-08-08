@@ -37,7 +37,6 @@ import org.kohsuke.github.GHRepository;
 import org.kohsuke.github.PagedIterable;
 import org.mockito.Mockito;
 import org.sonar.api.batch.fs.InputPath;
-import org.sonar.api.batch.fs.internal.DefaultInputFile;
 import org.sonar.api.batch.fs.internal.TestInputFileBuilder;
 
 import static org.assertj.core.api.Assertions.assertThat;
