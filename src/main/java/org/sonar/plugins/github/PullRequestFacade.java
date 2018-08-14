@@ -332,7 +332,7 @@ public class PullRequestFacade {
 
   private void eraseExistingReviews() throws IOException {
     for (GHPullRequestReview review : pr.listReviews()) {
-      if (myself.equals(review.getUser().getLogin()) && review.getState()!=GHPullRequestReviewState.DISMISSED) {
+      if (myself.equals(review.getUser().getLogin()) && review.getState() == GHPullRequestReviewState.CHANGES_REQUESTED) {
         review.dismiss("Re-analyzing");
       }
     }
