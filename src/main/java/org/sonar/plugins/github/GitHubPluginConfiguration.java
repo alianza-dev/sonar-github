@@ -143,6 +143,10 @@ public class GitHubPluginConfiguration {
     return settings.getBoolean(GitHubPlugin.GITHUB_IGNORE_UNCHANGED_LINES);
   }
 
+  public boolean alwaysIncludeUnused() {
+    return settings.getBoolean(GitHubPlugin.GITHUB_ALWAYS_INCLUDE_UNUSED);
+  }
+
   public boolean useReview() {
     return settings.getBoolean(GitHubPlugin.GITHUB_USE_REVIEW);
   }

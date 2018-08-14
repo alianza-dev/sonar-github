@@ -94,27 +94,53 @@ public class PullRequestIssuePostJob implements PostJob {
       // SONARGITUB-13 Ignore issues on files not modified by the P/R
       .filter(i -> {
         InputComponent inputComponent = i.inputComponent();
-          boolean result = inputComponent == null ||
-                  !inputComponent.isFile() ||
-                  pullRequestFacade.hasFile((InputFile) inputComponent) &&
-                          (!gitHubPluginConfiguration.ignoreUnchangedLines() ||
-                                  Optional.ofNullable(i.line()).map(line->pullRequestFacade.hasFileLine((InputFile) inputComponent, line)).orElse(true));
+          boolean result = keepIssue(pullRequestFacade, i, inputComponent);
           if (result) {
-              LOG.debug("result: {}, inputComponent: {}, file?: {}, hasFile?: {}, ignoreUnchanged?: {}, line: {}, message: {}",
-                       result,
-                       inputComponent,
-                       Optional.ofNullable(inputComponent).map(InputComponent::isFile).orElse(false),
-                       Optional.ofNullable(inputComponent).filter(InputComponent::isFile).map(ic->pullRequestFacade.hasFile((InputFile) ic)).orElse(false),
-                       gitHubPluginConfiguration.ignoreUnchangedLines(),
-                       i.line(),
-                       i.message());
+            LOG.debug("result: {}, inputComponent: {}, file?: {}, hasFile?: {}, ignoreUnchanged?: {}, line: {}, ruleKey: {}, message: {}",
+                     result,
+                     inputComponent,
+                     Optional.ofNullable(inputComponent).map(InputComponent::isFile).orElse(false),
+                     Optional.ofNullable(inputComponent).filter(InputComponent::isFile).map(ic->pullRequestFacade.hasFile((InputFile) ic)).orElse(false),
+                     gitHubPluginConfiguration.ignoreUnchangedLines(),
+                     i.line(),
+                     i.ruleKey(),
+                     i.message());
           }
           return result;
       })
       .sorted(ISSUE_COMPARATOR)
       .forEach(i -> processIssue(report, pullRequestFacade, commentToBeAddedByFileAndByLine, i));
     return commentToBeAddedByFileAndByLine;
+  }
 
+  private boolean keepIssue(PullRequestFacade pullRequestFacade, PostJobIssue issue, InputComponent inputComponent) {
+    if (inputComponent == null || !inputComponent.isFile()) {
+      return true;
+    }
+    if (pullRequestFacade.hasFile((InputFile) inputComponent)) {
+      if (gitHubPluginConfiguration.alwaysIncludeUnused() && isUnusedType(issue)){
+        return true;
+      }
+      if (gitHubPluginConfiguration.ignoreUnchangedLines()) {
+        if (issue.line() == null) {
+          return true;
+        }
+        return pullRequestFacade.hasFileLine((InputFile) inputComponent, issue.line());
+      }
+      return true;
+    }
+    return false;
+  }
+
+  private boolean isUnusedType(PostJobIssue issue) {
+    switch(issue.ruleKey().toString()){
+      case "squid:S1068":
+      case "squid:S1854":
+      case "squid:UselessImportCheck":
+        return true;
+      default:
+        return false;
+    }
   }
 
   private void processIssue(GlobalReport report, PullRequestFacade pullRequestFacade, Map<InputFile, Map<Integer, StringBuilder>> commentToBeAddedByFileAndByLine, PostJobIssue issue) {

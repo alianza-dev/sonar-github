@@ -69,6 +69,14 @@ import org.sonar.api.PropertyType;
     global = true,
     type = PropertyType.BOOLEAN),
   @Property(
+    key = GitHubPlugin.GITHUB_ALWAYS_INCLUDE_UNUSED,
+    defaultValue = "true",
+    name = "Always include 'unused' issues in the PR",
+    description = "Lines may become unused without being changed. This setting always reports unused issues in files touched in the PR whether the line was changed in the PR or not.",
+    project = true,
+    global = true,
+    type = PropertyType.BOOLEAN),
+  @Property(
     key = GitHubPlugin.GITHUB_USE_REVIEW,
     defaultValue = "false",
     name = "Add all comments in a review",
@@ -85,6 +93,7 @@ public class GitHubPlugin implements Plugin {
   public static final String GITHUB_PULL_REQUEST = "sonar.github.pullRequest";
   public static final String GITHUB_DISABLE_INLINE_COMMENTS = "sonar.github.disableInlineComments";
   public static final String GITHUB_IGNORE_UNCHANGED_LINES = "sonar.github.ignoreUnchangedLines";
+  public static final String GITHUB_ALWAYS_INCLUDE_UNUSED = "sonar.github.alwaysIncludeUnused";
   public static final String GITHUB_USE_REVIEW = "sonar.github.useReview";
 
   @Override
