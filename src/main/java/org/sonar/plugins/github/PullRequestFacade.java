@@ -304,6 +304,8 @@ public class PullRequestFacade {
           case SUCCESS:
             if (hasNewIssue) {
               createReview(GHPullRequestReviewEvent.COMMENT);
+            } else {
+              eraseExistingReviews();
             }
             break;
           case ERROR:
